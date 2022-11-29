@@ -14,30 +14,41 @@ import numpy as np
 import torch
 from src import dist_utils
 from src.retrievers import EMBEDDINGS_DIM
+
 logger = logging.getLogger()
 FAISSIndex = Union[faiss.IndexIVFFlat, faiss.IndexFlatIP, faiss.IndexIVFScalarQuantizer, faiss.IndexIVFPQ]
 BITS_PER_CODE: int = 8
 CHUNK_SPLIT: int = 3
+
+
 def serialize_listdocs(ids):
     ids = pickle.dumps(ids)
     ids = torch.tensor(list(ids), dtype=torch.uint8).cuda()
     return ids
+
+
 def deserialize_listdocs(ids):
     return [pickle.loads(x.cpu().numpy().tobytes()) for x in ids]
+
+
 class DistributedIndex(object):
     def __init__(self):
         self.embeddings = None
         self.doc_map = dict()
         self.is_in_gpu = True
+
     def init_embeddings(self, passages, dim: Optional[int] = EMBEDDINGS_DIM):
         self.doc_map = {i: doc for i, doc in enumerate(passages)}
         self.embeddings = torch.zeros(dim, (len(passages)), dtype=torch.float16)
         if self.is_in_gpu:
             self.embeddings = self.embeddings.cuda()
+
     def _get_saved_embedding_path(self, save_dir: str, shard: int) -> str:
         return os.path.join(save_dir, f"embeddings.{shard}.pt")
+
     def _get_saved_passages_path(self, save_dir: str, shard: int) -> str:
         return os.path.join(save_dir, f"passages.{shard}.pt")
+
     def save_index(self, path: str, total_saved_shards: int, overwrite_saved_passages: bool = False) -> None:
         """
         Saves index state to disk, which can later be loaded by the load_index method.
@@ -65,6 +76,7 @@ class DistributedIndex(object):
             embeddings_shard = self.embeddings[:, shard_start:shard_end]
             embedding_shard_path = self._get_saved_embedding_path(path, shard_id)
             torch.save(embeddings_shard, embedding_shard_path)
+
     def load_index(self, path: str, total_saved_shards: int):
         """
         Loads sharded embeddings and passages files (no index is loaded).
@@ -88,6 +100,7 @@ class DistributedIndex(object):
                 self.doc_map[n_passages] = p
                 n_passages += 1
         self.embeddings = torch.concat(embeddings, dim=1)
+
     def _compute_scores_and_indices(self, allqueries: torch.tensor, topk: int) -> Tuple[torch.tensor, torch.tensor]:
         """
         Computes the distance matrix for the query embeddings and embeddings chunk and returns the k-nearest neighbours and corresponding scores.
@@ -95,6 +108,7 @@ class DistributedIndex(object):
         scores = torch.matmul(allqueries.half(), self.embeddings)
         scores, indices = torch.topk(scores, topk, dim=1)
         return scores, indices
+
     @torch.no_grad()
     def search_knn(self, queries, topk):
         """
@@ -131,8 +145,11 @@ class DistributedIndex(object):
         scores = [[scores[k][j] for j in idx] for k, idx in enumerate(subindices)]
         docs = [[docs[k][j] for j in idx] for k, idx in enumerate(subindices)]
         return docs, scores
+
     def is_index_trained(self) -> bool:
         return True
+
+
 class DistributedFAISSIndex(DistributedIndex):
     def __init__(self, index_type: str, code_size: Optional[int] = None):
         super().__init__()
@@ -144,6 +161,7 @@ class DistributedFAISSIndex(DistributedIndex):
         self.faiss_index_type = index_type
         self.code_size = code_size
         self.is_in_gpu = False
+
     def _get_faiss_index_filename(self, save_index_path: str) -> str:
         """
         Creates the filename to save the trained index to using the index type, code size (if not None) and rank.
@@ -152,6 +170,7 @@ class DistributedFAISSIndex(DistributedIndex):
         if self.code_size:
             return save_index_path + f"/index{self.faiss_index_type}_{str(self.code_size)}_rank_{rank}.faiss"
         return save_index_path + f"/index{self.faiss_index_type}_rank_{rank}.faiss"
+
     def _add_embeddings_to_gpu_index(self) -> None:
         """
         Add embeddings to index and sets the nprobe parameter.
@@ -161,6 +180,7 @@ class DistributedFAISSIndex(DistributedIndex):
         if self.faiss_gpu_index.ntotal == 0:
             self._add_embeddings_by_chunks()
         self.faiss_gpu_index.nprobe = math.floor(math.sqrt(num_points))
+
     def _add_embeddings_by_chunks(self) -> None:
         _, num_points = self.embeddings.shape
         chunk_size = num_points // CHUNK_SPLIT
@@ -171,6 +191,7 @@ class DistributedFAISSIndex(DistributedIndex):
         ]
         for embeddings_chunk in split_embeddings:
             self.faiss_gpu_index.add(self._cast_to_torch32(embeddings_chunk.T))
+
     def _compute_scores_and_indices(self, allqueries: torch.tensor, topk: int) -> Tuple[torch.tensor, torch.tensor]:
         """
         Computes the distance matrix for the query embeddings and embeddings chunk and returns the k-nearest neighbours and corresponding scores.
@@ -178,12 +199,14 @@ class DistributedFAISSIndex(DistributedIndex):
         self._add_embeddings_to_gpu_index()
         scores, indices = self.faiss_gpu_index.search(self._cast_to_torch32(allqueries), topk)
         return scores.cuda(), indices
+
     def save_index(self, save_index_path: str, save_index_n_shards: int) -> None:
         """
         Saves the embeddings and passages and if there is a FAISS index, it saves it.
         """
         super().save_index(save_index_path, save_index_n_shards)
         self._save_faiss_index(save_index_path)
+
     def _save_faiss_index(self, path: str) -> None:
         """
         Moves the GPU FAISS index to CPU and saves it to a .faiss file.
@@ -192,6 +215,7 @@ class DistributedFAISSIndex(DistributedIndex):
         assert self.faiss_gpu_index is not None, "There is no FAISS index to save."
         cpu_index = faiss.index_gpu_to_cpu(self.faiss_gpu_index)
         faiss.write_index(cpu_index, index_path)
+
     def _load_faiss_index(self, path: str) -> None:
         """
         Loads a FAISS index and moves it to the GPU.
@@ -202,14 +226,17 @@ class DistributedFAISSIndex(DistributedIndex):
         self.gpu_resources = faiss.StandardGpuResources()
         # move to GPU
         self._move_index_to_gpu(faiss_cpu_index)
+
     def load_index(self, path: str, total_saved_shards: int) -> None:
         super().load_index(path, total_saved_shards)
         self._load_faiss_index(path)
+
     def is_index_trained(self) -> bool:
         if self.faiss_gpu_index is None:
             return self.faiss_index_trained
         else:
             return not self.faiss_gpu_index.is_trained
+
     def _initialise_index(self) -> None:
         """
         Initialises the index in the GPU with GPU FAISS.
@@ -222,6 +249,7 @@ class DistributedFAISSIndex(DistributedIndex):
         self.gpu_resources.noTempMemory()
         self.gpu_resources.useFloat16 = True
         self.faiss_gpu_index = self.gpu_index_factory(dimension, n_list)
+
     @torch.no_grad()
     def _set_gpu_options(self) -> faiss.GpuMultipleClonerOptions:
         """
@@ -232,6 +260,7 @@ class DistributedFAISSIndex(DistributedIndex):
         cloner_opts.usePrecomputed = False
         cloner_opts.indicesOptions = faiss.INDICES_32_BIT
         return cloner_opts
+
     @torch.no_grad()
     def _set_index_config_options(self, index_config: faiss.GpuIndexIVFPQConfig) -> faiss.GpuIndexIVFPQConfig:
         """
@@ -242,6 +271,7 @@ class DistributedFAISSIndex(DistributedIndex):
         index_config.useFloat16 = True
         index_config.usePrecomputed = False
         return index_config
+
     @torch.no_grad()
     def gpu_index_factory(self, dimension: int, n_list: Optional[int] = None) -> FAISSIndex:
         """
@@ -271,6 +301,7 @@ class DistributedFAISSIndex(DistributedIndex):
             )
         else:
             raise ValueError("unsupported index type")
+
     @torch.no_grad()
     def train_index(self) -> None:
         """
@@ -281,12 +312,14 @@ class DistributedFAISSIndex(DistributedIndex):
         self.faiss_gpu_index.reset()
         self.faiss_gpu_index.train(self._cast_to_torch32(self.embeddings.T))
         self._add_embeddings_to_gpu_index()
+
     @torch.no_grad()
     def _cast_to_torch32(self, embeddings: torch.tensor) -> torch.tensor:
         """
         Converts a torch tensor to a contiguous float 32 torch tensor.
         """
         return embeddings.type(torch.float32).contiguous()
+
     @torch.no_grad()
     def _move_index_to_gpu(self, cpu_index: FAISSIndex) -> None:
         """
