@@ -73,7 +73,7 @@ def main(output_directory, requested_index):
         target = get_download_path(output_directory, passage_path)
         maybe_download_file(source, target)
 
-        embedding_path = get_passage_path(requested_index, shard)
+        embedding_path = get_embedding_path(requested_index, shard)
         source = get_s3_path(embedding_path)
         target = get_download_path(output_directory, embedding_path)
         maybe_download_file(source, target)
