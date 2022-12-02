@@ -15,8 +15,12 @@ import torch
 from src import dist_utils
 from src.retrievers import EMBEDDINGS_DIM
 
-logger = logging.getLogger()
-FAISSIndex = Union[faiss.IndexIVFFlat, faiss.IndexFlatIP, faiss.IndexIVFScalarQuantizer, faiss.IndexIVFPQ]
+FAISSIndex = Union[
+    faiss.IndexIVFFlat,
+    faiss.IndexFlatIP,
+    faiss.IndexIVFScalarQuantizer,
+    faiss.IndexIVFPQ,
+]
 BITS_PER_CODE: int = 8
 CHUNK_SPLIT: int = 3
 
@@ -216,20 +220,26 @@ class DistributedFAISSIndex(DistributedIndex):
         cpu_index = faiss.index_gpu_to_cpu(self.faiss_gpu_index)
         faiss.write_index(cpu_index, index_path)
 
-    def _load_faiss_index(self, path: str) -> None:
+    def _load_faiss_index(self, load_index_path: str) -> None:
         """
         Loads a FAISS index and moves it to the GPU.
         """
-        load_index_path = self._get_faiss_index_filename(path)
-        assert os.path.exists(load_index_path), "Cannot load the specified FAISS index."
         faiss_cpu_index = faiss.read_index(load_index_path)
         self.gpu_resources = faiss.StandardGpuResources()
         # move to GPU
         self._move_index_to_gpu(faiss_cpu_index)
 
     def load_index(self, path: str, total_saved_shards: int) -> None:
+        """
+        Loads passage embeddings and passages and a faiss index (if it exists).
+        Otherwise, it initialises and trains the index in the GPU with GPU FAISS.
+        """
         super().load_index(path, total_saved_shards)
-        self._load_faiss_index(path)
+        load_index_path = self._get_faiss_index_filename(path)
+        if os.path.exists(load_index_path):
+            self._load_faiss_index(load_index_path)
+        else:
+            self.train_index()
 
     def is_index_trained(self) -> bool:
         if self.faiss_gpu_index is None:
@@ -279,7 +289,13 @@ class DistributedFAISSIndex(DistributedIndex):
         """
         if self.faiss_index_type == "ivfflat":
             config = self._set_index_config_options(faiss.GpuIndexIVFFlatConfig())
-            return faiss.GpuIndexIVFFlat(self.gpu_resources, dimension, n_list, faiss.METRIC_INNER_PRODUCT, config)
+            return faiss.GpuIndexIVFFlat(
+                self.gpu_resources,
+                dimension,
+                n_list,
+                faiss.METRIC_INNER_PRODUCT,
+                config,
+            )
         elif self.faiss_index_type == "flat":
             return faiss.GpuIndexFlatIP(self.gpu_resources, dimension)
         elif self.faiss_index_type == "ivfpq":
@@ -297,7 +313,13 @@ class DistributedFAISSIndex(DistributedIndex):
             config = self._set_index_config_options(faiss.GpuIndexIVFScalarQuantizerConfig())
             qtype = faiss.ScalarQuantizer.QT_4bit
             return faiss.GpuIndexIVFScalarQuantizer(
-                self.gpu_resources, dimension, n_list, qtype, faiss.METRIC_INNER_PRODUCT, True, config
+                self.gpu_resources,
+                dimension,
+                n_list,
+                qtype,
+                faiss.METRIC_INNER_PRODUCT,
+                True,
+                config,
             )
         else:
             raise ValueError("unsupported index type")
