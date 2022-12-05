@@ -5,25 +5,22 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
-import time
 from typing import List
 import argparse
 import numpy as np
 import torch
 import torch.cuda
 import sys
-from evaluate import evaluate
 from src import dist_utils, slurm, util
 from src.index_io import load_or_initialize_index
-from src.model_io import create_checkpoint_directories, load_or_initialize_atlas_model, save_atlas_model
+from src.model_io import create_checkpoint_directories, load_or_initialize_atlas_model
 from src.options import get_options
-from src.tasks import get_task
-from train import GRAD_SCALE_LOWER_BOUND_MEAN, GRAD_SCALE_UPPER_BOUND_MEAN, THRESHOLD_GRAD_STATS, train
+from train import train
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
-NCONTEXT: str = "20"
+NCONTEXT: str = "40"
 PBSZ: str = "2"
-PRECISION: str = "fp16"
+PRECISION: str = "fp32"
 GOLD_SCORE_MODE: str = "ppmean"
 GPU_MAX_LENGTH: str = "384"
 GEN_MAX_LENGTH: str = "32"
@@ -78,6 +75,8 @@ def set_parser_options(parser: argparse.Namespace, passed_args: List[str]) -> ar
         NCONTEXT,
         "--task",
         "qa",
+        "--refresh_index",
+        "-1",
     ] + passed_args
 
     return parser.parse_args(all_args)
@@ -85,7 +84,6 @@ def set_parser_options(parser: argparse.Namespace, passed_args: List[str]) -> ar
 
 if __name__ == "__main__":
     options = get_options()
-    print(sys.argv[1:])
     opt = set_parser_options(options.parser, sys.argv[1:])
 
     torch.manual_seed(opt.seed)

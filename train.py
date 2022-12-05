@@ -11,7 +11,7 @@ from collections import defaultdict
 import numpy as np
 import torch
 import torch.cuda
-
+import logging
 from evaluate import evaluate
 from src import dist_utils, slurm, util
 from src.index_io import load_or_initialize_index, save_embeddings_and_index
@@ -23,6 +23,8 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 GRAD_SCALE_UPPER_BOUND_MEAN: int = 1000
 GRAD_SCALE_LOWER_BOUND_MEAN: float = 0.01
 THRESHOLD_GRAD_STATS: int = 100
+
+logger = logging.getLogger(__name__)
 
 
 def train(
