@@ -741,13 +741,13 @@ For most use cases, the `flat` index will be sufficient and likely preferable.
 If using the faiss index, users should specify what kind of faiss index to use, using the following options:
 
 ```
-  --faiss_index_type {ivfflat,flat,ivfsq,ivfpq}
-      IVFFlat, IndexFlatIP, IVFScalarQuantizer or IndexIVFPQ with faiss-gpu (default: flat)
+  --faiss_index_type {ivfflat,flat,ivfsq,ivfpq,pq}
+      IVFFlat, IndexFlatIP, IVFScalarQuantizer, IndexPQ or IndexIVFPQ with faiss-gpu (default: flat)
   --faiss_code_size FAISS_CODE_SIZE
       Parameter for PQ/SQ quantization (default: None)
 ```
 
-A good default if using a faiss index is to use `--faiss_index_type ivfpq --faiss_code_size 64`. This will use an IVF-PQ index with the number of IVF clusters set to the square root of the number of embeddings per shard, and PQ code size of 64. More details on this index structure can be found in the faiss documentation [FAISS](https://github.com/facebookresearch/faiss).
+A good default if using a faiss index is to use `--faiss_index_type pq --faiss_code_size 16`. This will use an IVF-PQ index with the number of IVF clusters set to the square root of the number of embeddings per shard, and PQ code size of 16. More details on this index structure can be found in the faiss documentation [FAISS](https://github.com/facebookresearch/faiss).
 
 ### Index Saving and Loading
 
