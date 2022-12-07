@@ -12,6 +12,7 @@ import torch
 import torch.cuda
 import sys
 from src import dist_utils, slurm, util
+from src.torchrun_utils import init_distributed_mode_torchrun
 from src.index_io import load_or_initialize_index
 from src.model_io import create_checkpoint_directories, load_or_initialize_atlas_model
 from src.options import get_options
@@ -27,11 +28,13 @@ GEN_MAX_LENGTH: str = "32"
 EPSILON: str = "0.01"
 SMALL_EPSILON: str = "4e-5"
 DROPOUT: str = "0.1"
+NO_WARMUP_STEPS: str = "0"
+NO_REFRESH: str = "-1"
 
 
 def set_parser_options(parser: argparse.Namespace, passed_args: List[str]) -> argparse.ArgumentParser:
     """
-    Sets the default options for finetuning an Atlas model for a q&a task.
+    Sets some default options for finetuning an Atlas model for a q&a task.
     """
 
     all_args = [
@@ -76,7 +79,9 @@ def set_parser_options(parser: argparse.Namespace, passed_args: List[str]) -> ar
         "--task",
         "qa",
         "--refresh_index",
-        "-1",
+        NO_REFRESH,
+        "--warmup_steps",
+        NO_WARMUP_STEPS,
     ] + passed_args
 
     return parser.parse_args(all_args)
