@@ -21,7 +21,7 @@ from train import train
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 NCONTEXT: str = "40"
 PBSZ: str = "2"
-PRECISION: str = "fp32"
+PRECISION: str = "bf16"
 GOLD_SCORE_MODE: str = "ppmean"
 GPU_MAX_LENGTH: str = "384"
 GEN_MAX_LENGTH: str = "32"

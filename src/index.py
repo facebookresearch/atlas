@@ -367,7 +367,7 @@ class DistributedFAISSIndex(DistributedIndex):
         """
         Converts a torch tensor to a contiguous numpy float 32 ndarray.
         """
-        return embeddings.cpu().numpy().astype("float32").copy(order="C")
+        return embeddings.cpu().to(dtype=torch.float16).numpy().astype("float32").copy(order="C")
 
     @torch.no_grad()
     def _move_index_to_gpu(self, cpu_index: FAISSIndex) -> None:
