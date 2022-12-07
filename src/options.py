@@ -426,7 +426,7 @@ class Options:
             type=str,
             default="flat",
             help="IVFFlat, IndexFlatIP, IVFScalarQuantizer or IndexIVFPQ with faiss-gpu",
-            choices=["ivfflat", "flat", "ivfsq", "ivfpq"],
+            choices=["ivfflat", "flat", "ivfsq", "ivfpq", "pq"],
         )
         self.parser.add_argument("--faiss_code_size", type=int, default=None, help="Parameter for PQ/SQ quantization")
 
