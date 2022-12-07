@@ -747,7 +747,7 @@ If using the faiss index, users should specify what kind of faiss index to use, 
       Parameter for PQ/SQ quantization (default: None)
 ```
 
-A good default if using a faiss index is to use `--faiss_index_type pq --faiss_code_size 16`. This will use an IVF-PQ index with the number of IVF clusters set to the square root of the number of embeddings per shard, and PQ code size of 16. More details on this index structure can be found in the faiss documentation [FAISS](https://github.com/facebookresearch/faiss).
+A good default if using a faiss index is to use `--faiss_index_type ivfpq --faiss_code_size 16`. This will use an IVF-PQ index with the number of IVF clusters set to the square root of the number of embeddings per shard, and PQ code size of 16. More details on this index structure can be found in the faiss documentation [FAISS](https://github.com/facebookresearch/faiss).
 
 ### Index Saving and Loading
 
