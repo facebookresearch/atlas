@@ -12,7 +12,6 @@ import torch
 import torch.cuda
 import sys
 from src import dist_utils, slurm, util
-from src.torchrun_utils import init_distributed_mode_torchrun
 from src.index_io import load_or_initialize_index
 from src.model_io import create_checkpoint_directories, load_or_initialize_atlas_model
 from src.options import get_options
