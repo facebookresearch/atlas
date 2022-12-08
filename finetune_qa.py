@@ -11,6 +11,7 @@ import numpy as np
 import torch
 import torch.cuda
 import sys
+from src.torchrun_utils import init_distributed_mode_torchrun
 from src import dist_utils, slurm, util
 from src.index_io import load_or_initialize_index
 from src.model_io import create_checkpoint_directories, load_or_initialize_atlas_model
@@ -91,7 +92,8 @@ if __name__ == "__main__":
     opt = set_parser_options(options.parser, sys.argv[1:])
 
     torch.manual_seed(opt.seed)
-    slurm.init_distributed_mode(opt)
+    #slurm.init_distributed_mode(opt)
+    init_distributed_mode_torchrun(opt)
     slurm.init_signal_handler()
 
     checkpoint_path, saved_index_path = create_checkpoint_directories(opt)
