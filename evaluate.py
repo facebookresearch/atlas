@@ -26,12 +26,14 @@ def _get_eval_data_iterator(opt, data_path, task):
     data_iterator = task.data_iterator(data_path, opt.global_rank, opt.world_size, opt=opt, is_eval=True)
     data_iterator = filter(None, map(task.process, data_iterator))
     data_iterator = list(task.batch_iterator(data_iterator, opt.per_gpu_batch_size))
+    print("we are here", dist.get_world_size(), dist.get_rank(), torch.cuda.device_count())
     if dist.is_initialized():
-        len_data = torch.tensor(len(data_iterator)).cuda()
+        len_data = torch.tensor(len(data_iterator), device=torch.device("cuda"))
         dist.all_reduce(len_data, torch.distributed.ReduceOp.MAX)
+        dist.barrier()
         if len(data_iterator) < len_data.item():
             data_iterator.extend([{} for _ in range(len_data.item() - len(data_iterator))])
-    dist.barrier()
+
     return data_iterator
 
 
@@ -63,7 +65,6 @@ def run_retrieval_only(model, index, opt, data_path, step=None):
         # If example is a padding example then skip step
         if (len(query) == 0) or (len(query[0]) == 0):
             continue
-
         for k in range(len(retrieved_passages)):
             if opt.write_results:
                 gold = [answers[k]] if not "answers" in batch else batch["answers"][k]
@@ -92,7 +93,7 @@ def evaluate(model, index, opt, data_path, step=None):
 
     task = get_task(opt, reader_tokenizer)
     data_iterator = _get_eval_data_iterator(opt, data_path, task)
-
+    print(" completed data iterator")
     for i, batch in enumerate(data_iterator):
         query = batch.get("query", [""])
         answers = batch.get("target", [""])
@@ -118,16 +119,17 @@ def evaluate(model, index, opt, data_path, step=None):
         # If example is a padding example then skip step
         if (len(query) == 0) or (len(query[0]) == 0):
             continue
-
+        print(" completed for in data iterator")
         reader_tokens, _ = unwrapped_model.tokenize_passages(query, retrieved_passages)
 
         if "eval_loss" in task.metrics:
             eval_loss, logits = unwrapped_model.compute_reader_loss_and_logits(reader_tokens, decoder_input_ids, labels)
             metrics["eval_loss"].append(eval_loss)
-
+        print(" try to generate")
         generation = unwrapped_model.generate(
             reader_tokens, query, choices=batch["choices"] if "choices" in batch else None
         )
+        print(" finished generating")
 
         for k, g in enumerate(generation):
             if opt.decoder_prompt_format is not None:
@@ -153,10 +155,13 @@ def evaluate(model, index, opt, data_path, step=None):
                     ex["id"] = batch["id"][k]
                 dataset_wpred.append(ex)
 
+    print(" going thru generation stuff")
     metrics, dataset_wpred = task.evaluation_postprocessing(metrics, dataset_wpred)
+    print("finished metrics")
     metrics = util.avg_dist_dict(task.metrics, metrics)
+    print("weird metrics stuff")
     metrics = {key: value if key == "eval_loss" else 100 * value for key, value in metrics.items()}
-
+    print("finished metrics")
     if opt.write_results:
         dataset_name, _ = os.path.splitext(os.path.basename(data_path))
         dataset_name = f"{dataset_name}-step-{step}"

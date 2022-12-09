@@ -16,6 +16,7 @@ import torch
 
 logger = getLogger()
 
+
 def init_distributed_mode_torchrun(params):
     """
     Handle single and multi-GPU for singe-node jobs with torchrun.
@@ -26,12 +27,19 @@ def init_distributed_mode_torchrun(params):
         - global_rank
         - world_size
     """
-    
-    params.local_rank=int(os.environ["LOCAL_RANK"])
-    params.node_id=0
-    params.n_nodes=1
-    params.global_rank=int(os.environ["RANK"])
-    params.world_size=int(os.environ["WORLD_SIZE"])
+    # for NCCL verbose mode
+    os.environ["NCCL_DEBUG"] = "INFO"
+    # os.environ["NCCL_DEBUG_SUBSYS"]="ALL"
+    # os.environ["NCCL_P2P_DISABLE"]="1"
+    # os.environ["CUDA_LAUNCH_BLOCKING"]="1"
+    # os.environ["NCCL_IB_DISABLE"]="1"
+    # os.environ["NCCL_LL_THRESHOLD"]="0" #try this
+    # os.environ["MKL_NUM_THREADS"]="1"
+    params.local_rank = int(os.environ["LOCAL_RANK"])
+    params.node_id = 0
+    params.n_nodes = 1
+    params.global_rank = int(os.environ["RANK"])
+    params.world_size = int(os.environ["WORLD_SIZE"])
     # define whether this is the master process / if we are in distributed mode
     params.is_main = params.node_id == 0 and params.local_rank == 0
     params.multi_node = params.n_nodes > 1
@@ -77,5 +85,3 @@ def init_distributed_mode_torchrun(params):
         GLOO_GROUP = torch.distributed.new_group(
             list(range(params.world_size)), backend="gloo", timeout=datetime.timedelta(0, 600)
         )
-    
-    
