@@ -6,12 +6,8 @@
 
 import datetime
 import os
-import signal
-import socket
 import subprocess
-import sys
 from logging import getLogger
-
 import torch
 
 logger = getLogger()
@@ -26,15 +22,9 @@ def init_distributed_mode_torchrun(params):
         - local_rank
         - global_rank
         - world_size
-    """
-    # for NCCL verbose mode
+    For NCCL verbose mode, use:
     os.environ["NCCL_DEBUG"] = "INFO"
-    # os.environ["NCCL_DEBUG_SUBSYS"]="ALL"
-    # os.environ["NCCL_P2P_DISABLE"]="1"
-    # os.environ["CUDA_LAUNCH_BLOCKING"]="1"
-    # os.environ["NCCL_IB_DISABLE"]="1"
-    # os.environ["NCCL_LL_THRESHOLD"]="0" #try this
-    # os.environ["MKL_NUM_THREADS"]="1"
+    """
     params.local_rank = int(os.environ["LOCAL_RANK"])
     params.node_id = 0
     params.n_nodes = 1
@@ -48,8 +38,7 @@ def init_distributed_mode_torchrun(params):
 
     # summary
     PREFIX = "%i - " % params.global_rank
-    # define master address
-    # tbc
+
     # set GPU device
     if params.is_distributed:
         torch.cuda.set_device(params.local_rank)
@@ -83,5 +72,7 @@ def init_distributed_mode_torchrun(params):
         global GLOO_GROUP
 
         GLOO_GROUP = torch.distributed.new_group(
-            list(range(params.world_size)), backend="gloo", timeout=datetime.timedelta(0, 600)
+            list(range(params.world_size)),
+            backend="gloo",
+            timeout=datetime.timedelta(0, 600),
         )

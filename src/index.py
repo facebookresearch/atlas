@@ -111,6 +111,7 @@ class DistributedIndex(object):
         """
         scores = torch.matmul(allqueries.half(), self.embeddings)
         scores, indices = torch.topk(scores, topk, dim=1)
+
         return scores, indices
 
     @torch.no_grad()
@@ -179,11 +180,11 @@ class DistributedFAISSIndex(DistributedIndex):
         """
         Add embeddings to index and sets the nprobe parameter.
         """
-        _, num_points = self.embeddings.shape
-        assert self.faiss_gpu_index is not None, "the FAISS GPU index was not correctly instantiated."
+        assert self.faiss_gpu_index is not None, "The FAISS GPU index was not correctly instantiated."
+        assert self.faiss_gpu_index.is_trained == True, "The FAISS index has not been trained."
         if self.faiss_gpu_index.ntotal == 0:
             self._add_embeddings_by_chunks()
-        self.faiss_gpu_index.nprobe = math.floor(math.sqrt(num_points))
+        
 
     def _add_embeddings_by_chunks(self) -> None:
         _, num_points = self.embeddings.shape
@@ -203,12 +204,15 @@ class DistributedFAISSIndex(DistributedIndex):
         """
         Computes the distance matrix for the query embeddings and embeddings chunk and returns the k-nearest neighbours and corresponding scores.
         """
+        _, num_points = self.embeddings.shape
+        self.gpu_index.nprobe = math.floor(math.sqrt(num_points))
         self._add_embeddings_to_gpu_index()
         if isinstance(self.faiss_gpu_index, FAISSGPUIndex.__args__):
             scores, indices = self.faiss_gpu_index.search(self._cast_to_torch32(allqueries), topk)
         else:
             np_scores, indices = self.faiss_gpu_index.search(self._cast_to_numpy(allqueries), topk)
-            scores = torch.from_numpy(np_scores)
+            scores = torch.from_numpy(np_scores).half()
+
         return scores.cuda(), indices
 
     def save_index(self, save_index_path: str, save_index_n_shards: int) -> None:
@@ -251,8 +255,7 @@ class DistributedFAISSIndex(DistributedIndex):
     def is_index_trained(self) -> bool:
         if self.faiss_gpu_index is None:
             return self.faiss_index_trained
-        else:
-            return not self.faiss_gpu_index.is_trained
+        return not self.faiss_gpu_index.is_trained
 
     def _initialise_index(self) -> None:
         """
@@ -263,8 +266,6 @@ class DistributedFAISSIndex(DistributedIndex):
         # @TODO: Add support to set the n_list and n_probe parameters.
         n_list = math.floor(math.sqrt(num_points))
         self.gpu_resources = faiss.StandardGpuResources()
-        self.gpu_resources.noTempMemory()
-        self.gpu_resources.useFloat16 = True
         self.faiss_gpu_index = self.gpu_index_factory(dimension, n_list)
 
     @torch.no_grad()
@@ -286,14 +287,14 @@ class DistributedFAISSIndex(DistributedIndex):
         index_config.device = torch.cuda.current_device()
         index_config.indicesOptions = faiss.INDICES_32_BIT
         index_config.useFloat16 = True
-        index_config.usePrecomputed = False
+
         return index_config
 
     def _create_PQ_index(self, dimension) -> FAISSIndex:
         """
         GPU config options for PQ index
         """
-        cpu_index = faiss.IndexPQ(dimension, BITS_PER_CODE, self.code_size, faiss.METRIC_INNER_PRODUCT)
+        cpu_index = faiss.index_factory(dimension, "PQ" + str(self.code_size), faiss.METRIC_INNER_PRODUCT)
         cfg = self._set_gpu_options()
         return faiss.index_cpu_to_gpu(self.gpu_resources, self.embeddings.get_device(), cpu_index, cfg)
 
@@ -353,6 +354,7 @@ class DistributedFAISSIndex(DistributedIndex):
             self.faiss_gpu_index.train(self._cast_to_torch32(self.embeddings.T))
         else:
             self.faiss_gpu_index.train(self._cast_to_numpy(self.embeddings.T))
+
         self._add_embeddings_to_gpu_index()
 
     @torch.no_grad()

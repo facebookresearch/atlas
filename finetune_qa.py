@@ -21,7 +21,7 @@ import torch.distributed as dist
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 NCONTEXT: str = "40"
-PBSZ: str = "3"
+PBSZ: str = "1"
 PRECISION: str = "bf16"
 GOLD_SCORE_MODE: str = "ppmean"
 GPU_MAX_LENGTH: str = "384"
@@ -93,9 +93,13 @@ if __name__ == "__main__":
     opt = set_parser_options(options.parser, sys.argv[1:])
 
     torch.manual_seed(opt.seed)
-    # slurm.init_distributed_mode(opt)
-    init_distributed_mode_torchrun(opt)
-    slurm.init_signal_handler()
+
+    if "TORCHELASTIC_RUN_ID" in os.environ:
+        init_distributed_mode_torchrun(opt)
+        torch.cuda.set_device(dist.get_rank())
+    else:
+        slurm.init_distributed_mode(opt)
+        slurm.init_signal_handler()
 
     checkpoint_path, saved_index_path = create_checkpoint_directories(opt)
 
@@ -127,7 +131,7 @@ if __name__ == "__main__":
                 find_unused_parameters=True,
             )
             model._set_static_graph()
-        torch.cuda.set_device(dist.get_rank())
+
     logger.info("Start finetuning")
     dist_utils.barrier()
     train(

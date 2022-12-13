@@ -75,7 +75,7 @@ def load_or_initialize_index(opt):
     elif opt.index_mode == "faiss":
         index = DistributedFAISSIndex(opt.faiss_index_type, opt.faiss_code_size)
     else:
-        raise ValueError(f"unsupported index mode {opt.faiss_index_mode}")
+        raise ValueError(f"unsupported index mode {opt.index_mode}")
 
     if opt.load_index_path is not None:
         logger.info(f"Loading index from: {opt.load_index_path} with index mode: {opt.index_mode}")
