@@ -20,7 +20,12 @@ FAISSGPUIndex = Union[
 ]
 FAISSIndex = Union[FAISSGPUIndex, faiss.IndexPQ]
 
-GPUIndexConfig = Union[faiss.GpuIndexIVFPQConfig, faiss.GpuIndexIVFFlatConfig, faiss.GpuIndexIVFScalarQuantizerConfig]
+GPUIndexConfig = Union[
+    faiss.GpuIndexIVFPQConfig,
+    faiss.GpuIndexIVFFlatConfig,
+    faiss.GpuIndexIVFScalarQuantizerConfig,
+    faiss.GpuIndexFlatConfig,
+]
 BITS_PER_CODE: int = 8
 CHUNK_SPLIT: int = 3
 
@@ -124,7 +129,7 @@ class DistributedIndex(object):
         allsizes = np.cumsum([0] + allsizes.cpu().tolist())
         # compute scores for the part of the index located on each process
         scores, indices = self._compute_scores_and_indices(allqueries, topk)
-        indices = indices.tolist()
+        indices = indices.cpu().tolist()
         docs = [[self.doc_map[x] for x in sample_indices] for sample_indices in indices]
         if torch.distributed.is_initialized():
             docs = [docs[allsizes[k] : allsizes[k + 1]] for k in range(len(allsizes) - 1)]
@@ -184,7 +189,6 @@ class DistributedFAISSIndex(DistributedIndex):
         assert self.faiss_gpu_index.is_trained == True, "The FAISS index has not been trained."
         if self.faiss_gpu_index.ntotal == 0:
             self._add_embeddings_by_chunks()
-        
 
     def _add_embeddings_by_chunks(self) -> None:
         _, num_points = self.embeddings.shape
@@ -211,9 +215,9 @@ class DistributedFAISSIndex(DistributedIndex):
             scores, indices = self.faiss_gpu_index.search(self._cast_to_torch32(allqueries), topk)
         else:
             np_scores, indices = self.faiss_gpu_index.search(self._cast_to_numpy(allqueries), topk)
-            scores = torch.from_numpy(np_scores).half()
+            scores = torch.from_numpy(np_scores)
 
-        return scores.cuda(), indices
+        return scores.half().cuda(), indices
 
     def save_index(self, save_index_path: str, save_index_n_shards: int) -> None:
         """
@@ -313,7 +317,8 @@ class DistributedFAISSIndex(DistributedIndex):
                 config,
             )
         elif self.faiss_index_type == "flat":
-            return faiss.GpuIndexFlatIP(self.gpu_resources, dimension)
+            config = self._set_index_config_options(faiss.GpuIndexFlatConfig())
+            return faiss.GpuIndexFlatIP(self.gpu_resources, dimension, config)
         elif self.faiss_index_type == "pq":
             return self._create_PQ_index(dimension)
         elif self.faiss_index_type == "ivfpq":
