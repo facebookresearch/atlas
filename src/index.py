@@ -116,7 +116,17 @@ class DistributedIndex(object):
         """
         scores = torch.matmul(allqueries.half(), self.embeddings)
         scores, indices = torch.topk(scores, topk, dim=1)
-
+        # dimension, num_points = self.embeddings.shape
+        # gpu_resources = faiss.StandardGpuResources()
+        # cfg = faiss.GpuIndexFlatConfig()
+        # cfg.useFloat16 = True
+        # gpu_index = faiss.GpuIndexFlatIP(gpu_resources, dimension, cfg)
+        # if gpu_index.ntotal == 0:
+        #    embeddings = self.embeddings.T
+        #    gpu_index.add(embeddings.type(torch.float32).contiguous())
+        # import math
+        # gpu_index.nprobe = math.floor(math.sqrt(num_points))
+        # scores, indices = gpu_index.search(allqueries.type(torch.float32), topk)
         return scores, indices
 
     @torch.no_grad()
@@ -194,9 +204,9 @@ class DistributedFAISSIndex(DistributedIndex):
         _, num_points = self.embeddings.shape
         chunk_size = num_points // CHUNK_SPLIT
         split_embeddings = [
-            self.embeddings[:, 0 : chunk_size - 1],
-            self.embeddings[:, chunk_size : 2 * chunk_size - 1],
-            self.embeddings[:, 2 * chunk_size : num_points - 1],
+            self.embeddings[:, 0:chunk_size],
+            self.embeddings[:, chunk_size : 2 * chunk_size],
+            self.embeddings[:, 2 * chunk_size : num_points],
         ]
         for embeddings_chunk in split_embeddings:
             if isinstance(self.faiss_gpu_index, FAISSGPUIndex.__args__):
@@ -209,15 +219,14 @@ class DistributedFAISSIndex(DistributedIndex):
         Computes the distance matrix for the query embeddings and embeddings chunk and returns the k-nearest neighbours and corresponding scores.
         """
         _, num_points = self.embeddings.shape
-        self.gpu_index.nprobe = math.floor(math.sqrt(num_points))
+        self.faiss_gpu_index.nprobe = math.floor(math.sqrt(num_points))
         self._add_embeddings_to_gpu_index()
         if isinstance(self.faiss_gpu_index, FAISSGPUIndex.__args__):
             scores, indices = self.faiss_gpu_index.search(self._cast_to_torch32(allqueries), topk)
         else:
             np_scores, indices = self.faiss_gpu_index.search(self._cast_to_numpy(allqueries), topk)
-            scores = torch.from_numpy(np_scores)
-
-        return scores.half().cuda(), indices
+            scores = torch.from_numpy(np_scores).cuda()
+        return scores.half(), indices
 
     def save_index(self, save_index_path: str, save_index_n_shards: int) -> None:
         """
@@ -240,7 +249,6 @@ class DistributedFAISSIndex(DistributedIndex):
         Loads a FAISS index and moves it to the GPU.
         """
         faiss_cpu_index = faiss.read_index(load_index_path)
-        self.gpu_resources = faiss.StandardGpuResources()
         # move to GPU
         self._move_index_to_gpu(faiss_cpu_index)
 
@@ -269,7 +277,6 @@ class DistributedFAISSIndex(DistributedIndex):
         dimension, num_points = self.embeddings.shape
         # @TODO: Add support to set the n_list and n_probe parameters.
         n_list = math.floor(math.sqrt(num_points))
-        self.gpu_resources = faiss.StandardGpuResources()
         self.faiss_gpu_index = self.gpu_index_factory(dimension, n_list)
 
     @torch.no_grad()
@@ -307,6 +314,7 @@ class DistributedFAISSIndex(DistributedIndex):
         """
         Instantiates and returns the selected GPU index class.
         """
+        self.gpu_resources = faiss.StandardGpuResources()
         if self.faiss_index_type == "ivfflat":
             config = self._set_index_config_options(faiss.GpuIndexIVFFlatConfig())
             return faiss.GpuIndexIVFFlat(
@@ -360,8 +368,6 @@ class DistributedFAISSIndex(DistributedIndex):
         else:
             self.faiss_gpu_index.train(self._cast_to_numpy(self.embeddings.T))
 
-        self._add_embeddings_to_gpu_index()
-
     @torch.no_grad()
     def _cast_to_torch32(self, embeddings: torch.tensor) -> torch.tensor:
         """
@@ -381,5 +387,6 @@ class DistributedFAISSIndex(DistributedIndex):
         """
         Moves a loaded index to GPU.
         """
+        self.gpu_resources = faiss.StandardGpuResources()
         cfg = self._set_gpu_options()
         self.faiss_gpu_index = faiss.index_cpu_to_gpu(self.gpu_resources, torch.cuda.current_device(), cpu_index, cfg)
