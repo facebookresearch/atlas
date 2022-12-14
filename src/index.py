@@ -116,17 +116,7 @@ class DistributedIndex(object):
         """
         scores = torch.matmul(allqueries.half(), self.embeddings)
         scores, indices = torch.topk(scores, topk, dim=1)
-        # dimension, num_points = self.embeddings.shape
-        # gpu_resources = faiss.StandardGpuResources()
-        # cfg = faiss.GpuIndexFlatConfig()
-        # cfg.useFloat16 = True
-        # gpu_index = faiss.GpuIndexFlatIP(gpu_resources, dimension, cfg)
-        # if gpu_index.ntotal == 0:
-        #    embeddings = self.embeddings.T
-        #    gpu_index.add(embeddings.type(torch.float32).contiguous())
-        # import math
-        # gpu_index.nprobe = math.floor(math.sqrt(num_points))
-        # scores, indices = gpu_index.search(allqueries.type(torch.float32), topk)
+
         return scores, indices
 
     @torch.no_grad()
