@@ -129,7 +129,7 @@ class DistributedIndex(object):
         allsizes = np.cumsum([0] + allsizes.cpu().tolist())
         # compute scores for the part of the index located on each process
         scores, indices = self._compute_scores_and_indices(allqueries, topk)
-        indices = indices.cpu().tolist()
+        indices = indices.tolist()
         docs = [[self.doc_map[x] for x in sample_indices] for sample_indices in indices]
         if torch.distributed.is_initialized():
             docs = [docs[allsizes[k] : allsizes[k + 1]] for k in range(len(allsizes) - 1)]
