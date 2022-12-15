@@ -26,12 +26,14 @@ def _get_eval_data_iterator(opt, data_path, task):
     data_iterator = task.data_iterator(data_path, opt.global_rank, opt.world_size, opt=opt, is_eval=True)
     data_iterator = filter(None, map(task.process, data_iterator))
     data_iterator = list(task.batch_iterator(data_iterator, opt.per_gpu_batch_size))
+
     if dist.is_initialized():
-        len_data = torch.tensor(len(data_iterator)).cuda()
+        len_data = torch.tensor(len(data_iterator), device=torch.device("cuda"))
         dist.all_reduce(len_data, torch.distributed.ReduceOp.MAX)
+        dist.barrier()
         if len(data_iterator) < len_data.item():
             data_iterator.extend([{} for _ in range(len_data.item() - len(data_iterator))])
-    dist.barrier()
+
     return data_iterator
 
 
@@ -63,7 +65,6 @@ def run_retrieval_only(model, index, opt, data_path, step=None):
         # If example is a padding example then skip step
         if (len(query) == 0) or (len(query[0]) == 0):
             continue
-
         for k in range(len(retrieved_passages)):
             if opt.write_results:
                 gold = [answers[k]] if not "answers" in batch else batch["answers"][k]
@@ -156,7 +157,6 @@ def evaluate(model, index, opt, data_path, step=None):
     metrics, dataset_wpred = task.evaluation_postprocessing(metrics, dataset_wpred)
     metrics = util.avg_dist_dict(task.metrics, metrics)
     metrics = {key: value if key == "eval_loss" else 100 * value for key, value in metrics.items()}
-
     if opt.write_results:
         dataset_name, _ = os.path.splitext(os.path.basename(data_path))
         dataset_name = f"{dataset_name}-step-{step}"

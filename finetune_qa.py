@@ -8,18 +8,21 @@ import os
 from typing import List
 import argparse
 import numpy as np
+import random
 import torch
 import torch.cuda
 import sys
+from src.torchrun_utils import init_distributed_mode_torchrun
 from src import dist_utils, slurm, util
 from src.index_io import load_or_initialize_index
 from src.model_io import create_checkpoint_directories, load_or_initialize_atlas_model
 from src.options import get_options
 from train import train
+import torch.distributed as dist
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 NCONTEXT: str = "40"
-PBSZ: str = "2"
+PBSZ: str = "1"
 PRECISION: str = "bf16"
 GOLD_SCORE_MODE: str = "ppmean"
 GPU_MAX_LENGTH: str = "384"
@@ -27,16 +30,40 @@ GEN_MAX_LENGTH: str = "32"
 EPSILON: str = "0.01"
 SMALL_EPSILON: str = "4e-5"
 DROPOUT: str = "0.1"
-NO_WARMUP_STEPS: str = "0"
+WARMUP_STEPS: str = "5"
+EVAL_FREQ: str = "10"
+LOG_FREQ: str = "5"
 NO_REFRESH: str = "-1"
+CHECK_FREQS: List[str] = ["--warmup_steps", "--save_freq", "--eval_freq"]
+PORT: str = str(random.randrange(15000, 16000))
+
+
+def get_argument_value(all_args: List[str], argument_name: str) -> int:
+
+    argument_idx = all_args.index(argument_name)
+    return int(all_args[argument_idx + 1])
+
+
+def check_valid_input_params(all_args: List[str], total_steps: int) -> None:
+
+    for freq in CHECK_FREQS:
+        try:
+            arg_val = get_argument_value(all_args, freq)
+        except ValueError:
+            print(f"List does not contain value {freq}")
+
+        assert arg_val < total_steps, f"The {freq} cannot be higher than the total steps {total_steps}. "
 
 
 def set_parser_options(parser: argparse.Namespace, passed_args: List[str]) -> argparse.ArgumentParser:
     """
-    Sets some default options for finetuning an Atlas model for a q&a task.
+    Sets the default options for finetuning an Atlas model for a q&a task.
     """
 
+    total_steps = get_argument_value(passed_args, "--total_steps")
+
     all_args = [
+        "--write_results",
         "--train_retriever",
         "--query_side_retriever_training",
         "--use_gradient_checkpoint_reader",
@@ -80,9 +107,18 @@ def set_parser_options(parser: argparse.Namespace, passed_args: List[str]) -> ar
         "--refresh_index",
         NO_REFRESH,
         "--warmup_steps",
-        NO_WARMUP_STEPS,
+        WARMUP_STEPS,
+        "--save_freq",
+        str(total_steps - 1),
+        "--eval_freq",
+        EVAL_FREQ,
+        "--log_freq",
+        LOG_FREQ,
+        "--main_port",
+        PORT,
     ] + passed_args
 
+    check_valid_input_params(all_args, total_steps)
     return parser.parse_args(all_args)
 
 
@@ -91,8 +127,13 @@ if __name__ == "__main__":
     opt = set_parser_options(options.parser, sys.argv[1:])
 
     torch.manual_seed(opt.seed)
-    slurm.init_distributed_mode(opt)
-    slurm.init_signal_handler()
+
+    if "TORCHELASTIC_RUN_ID" in os.environ:
+        init_distributed_mode_torchrun(opt)
+        torch.cuda.set_device(dist.get_rank())
+    else:
+        slurm.init_distributed_mode(opt)
+        slurm.init_signal_handler()
 
     checkpoint_path, saved_index_path = create_checkpoint_directories(opt)
 
