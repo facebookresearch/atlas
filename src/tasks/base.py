@@ -125,4 +125,4 @@ def filter_results_by_id(batch_metadata, passages, scores, topk, training=False)
         output_passages.append(filtered_passages)
         output_scores.append(filtered_scores)
 
-    return output_passages, output_scores
+    return [ps[:topk] for ps in output_passages], [ss[:topk] for ss in output_scores]
