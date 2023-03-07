@@ -198,6 +198,15 @@ def load_or_initialize_atlas_model(opt, eval_only=False):
 
 
 def save_atlas_model(model, optimizer, scheduler, retr_optimizer, retr_scheduler, step, opt, dir_path, name):
+
+    if opt.save_optimizer and opt.shard_optim:
+        optimizer.consolidate_state_dict()
+        if retr_optimizer:
+            retr_optimizer.consolidate_state_dict()
+
+    if not opt.is_main:
+        return 0
+
     def symlink_force(target, link_name):
         try:
             os.symlink(target, link_name)
@@ -214,10 +223,7 @@ def save_atlas_model(model, optimizer, scheduler, retr_optimizer, retr_scheduler
     os.makedirs(epoch_path, exist_ok=True)
     cp = os.path.join(path, "latest")
     fp = os.path.join(epoch_path, "model.pth.tar")
-    if opt.save_optimizer and opt.shard_optim:
-        optimizer.consolidate_state_dict()
-        if retr_optimizer:
-            retr_optimizer.consolidate_state_dict()
+
     optim_state = optimizer.state_dict() if opt.save_optimizer else None
     if retr_optimizer and opt.save_optimizer:
         retr_optim_state = retr_optimizer.state_dict()

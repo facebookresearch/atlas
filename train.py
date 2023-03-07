@@ -159,7 +159,7 @@ def train(
                             tb_logger.add_scalar(f"{dataset_name}/{k}", v, step)
                     logger.info(log_message)
 
-            if step % opt.save_freq == 0 and opt.is_main:
+            if step % opt.save_freq == 0:
                 save_atlas_model(
                     unwrapped_model,
                     optimizer,
