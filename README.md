@@ -161,7 +161,7 @@ srun python train.py \
     --write_results \ # write predictions - they will get saved in the checkpoint folder, ${SAVE_DIR}/${EXPERIMENT_NAME}
     --task qa \ # we're doing the QA task
     --index_mode flat \ # don't use faiss, keep index flat (recommended unless using very large indices or very constrained on GPU memory)
-    --passages "${DATA_DIR}/corpora/enwiki-dec2018/text-list-100-sec.jsonl ${DATA_DIR}/corpora/wiki/enwiki-dec2018/infobox.jsonl"\ # pass in the wikipedia passages to index and retrieve from (we use both the text and infoboxes)
+    --passages "${DATA_DIR}/corpora/wiki/enwiki-dec2018/text-list-100-sec.jsonl" "${DATA_DIR}/corpora/wiki/enwiki-dec2018/infobox.jsonl"\ # pass in the wikipedia passages to index and retrieve from (we use both the text and infoboxes)
     --save_index_path ${SAVE_DIR}/${EXPERIMENT_NAME}/saved_index # save the index we built to this path
 ```
 
