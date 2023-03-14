@@ -117,7 +117,7 @@ DATA_DIR=./atlas_data
 SIZE=large # lets use large, (slower than base, but still quite fast and accessible, but less accurate than xl or xxl)
 
 # download the NQ data
-python preprocessing/prepare_qa.py --output_directory ${DATA_DIR} 
+python preprocessing/prepare_qa.py --output_directory ${DATA_DIR}/data/
 # download the Wikipedia 2018 corpus
 python preprocessing/download_corpus.py --corpus corpora/wiki/enwiki-dec2018 --output_directory ${DATA_DIR} 
 # downloads pretrained Atlas-large
