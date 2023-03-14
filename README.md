@@ -144,7 +144,7 @@ srun python train.py \
     --reader_model_type google/t5-${SIZE}-lm-adapt \ # architecture of Atlas
     --dropout 0.1 --weight_decay 0.01 --lr 4e-5 --lr_retriever 4e-5 --scheduler linear \ # optimization flags
     --text_maxlength 512 \ # max length of question + passage when concatenated
-    --model_path "${DATA_DIR}/models/atlas/${size}" \ # path to the pretrained Atlas model we just downloaded (pass 'none' to init from plain t5 and Contriever)
+    --model_path "${DATA_DIR}/models/atlas/${SIZE}" \ # path to the pretrained Atlas model we just downloaded (pass 'none' to init from plain t5 and Contriever)
     --train_data "${DATA_DIR}/data/nq_data/train.64-shot.jsonl" \ # path the 64-shot train dataset we just downloaded 
     --eval_data "${DATA_DIR}/data/nq_data/dev.jsonl" \ # path the NQ dev dataset we just downloaded, to evaluate on when training is done
     --per_gpu_batch_size 1 \
