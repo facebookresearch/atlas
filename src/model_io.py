@@ -150,7 +150,15 @@ def load_atlas_model(dir_path, opt, reset_params=False, eval_only=False):
     else:
         optimizer, scheduler, retr_optimizer, retr_scheduler = set_optim(opt, model)
 
-    return model, optimizer, scheduler, retr_optimizer, retr_scheduler, opt_checkpoint, step
+    return (
+        model,
+        optimizer,
+        scheduler,
+        retr_optimizer,
+        retr_scheduler,
+        opt_checkpoint,
+        step,
+    )
 
 
 def init_atlas_model(opt, eval_only):
@@ -188,16 +196,32 @@ def load_or_initialize_atlas_model(opt, eval_only=False):
     else:  # fresh finetune run, initialized from old model
         load_path, reset_params = opt.model_path, True
 
-    model, optimizer, scheduler, retr_optimizer, retr_scheduler, opt_checkpoint, loaded_step = load_atlas_model(
-        load_path, opt, reset_params=reset_params, eval_only=eval_only
-    )
+    (
+        model,
+        optimizer,
+        scheduler,
+        retr_optimizer,
+        retr_scheduler,
+        opt_checkpoint,
+        loaded_step,
+    ) = load_atlas_model(load_path, opt, reset_params=reset_params, eval_only=eval_only)
     logger.info(f"Model loaded from {load_path}")
     step = 0 if opt.model_path != "none" else loaded_step
 
     return model, optimizer, scheduler, retr_optimizer, retr_scheduler, opt, step
 
 
-def save_atlas_model(model, optimizer, scheduler, retr_optimizer, retr_scheduler, step, opt, dir_path, name):
+def save_atlas_model(
+    model,
+    optimizer,
+    scheduler,
+    retr_optimizer,
+    retr_scheduler,
+    step,
+    opt,
+    dir_path,
+    name,
+):
 
     if opt.save_optimizer and opt.shard_optim:
         optimizer.consolidate_state_dict()

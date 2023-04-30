@@ -181,7 +181,9 @@ def init_distributed_mode(params):
         global GLOO_GROUP
 
         GLOO_GROUP = torch.distributed.new_group(
-            list(range(params.world_size)), backend="gloo", timeout=datetime.timedelta(0, 600)
+            list(range(params.world_size)),
+            backend="gloo",
+            timeout=datetime.timedelta(0, 600),
         )
 
 

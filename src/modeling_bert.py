@@ -144,7 +144,14 @@ def load_tf_weights_in_bert(model, config, tf_checkpoint_path):
         # adam_v and adam_m are variables used in AdamWeightDecayOptimizer to calculated m and v
         # which are not required for using pretrained model
         if any(
-            n in ["adam_v", "adam_m", "AdamWeightDecayOptimizer", "AdamWeightDecayOptimizer_1", "global_step"]
+            n
+            in [
+                "adam_v",
+                "adam_m",
+                "AdamWeightDecayOptimizer",
+                "AdamWeightDecayOptimizer_1",
+                "global_step",
+            ]
             for n in name
         ):
             logger.info(f"Skipping {'/'.join(name)}")
@@ -211,7 +218,12 @@ class BertEmbeddings(nn.Module):
             )
 
     def forward(
-        self, input_ids=None, token_type_ids=None, position_ids=None, inputs_embeds=None, past_key_values_length=0
+        self,
+        input_ids=None,
+        token_type_ids=None,
+        position_ids=None,
+        inputs_embeds=None,
+        past_key_values_length=0,
     ):
         if input_ids is not None:
             input_shape = input_ids.size()
@@ -273,7 +285,10 @@ class BertSelfAttention(nn.Module):
         self.is_decoder = config.is_decoder
 
     def transpose_for_scores(self, x):
-        new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
+        new_x_shape = x.size()[:-1] + (
+            self.num_attention_heads,
+            self.attention_head_size,
+        )
         x = x.view(new_x_shape)
         return x.permute(0, 2, 1, 3)
 
@@ -398,7 +413,10 @@ class BertAttention(nn.Module):
         if len(heads) == 0:
             return
         heads, index = find_pruneable_heads_and_indices(
-            heads, self.self.num_attention_heads, self.self.attention_head_size, self.pruned_heads
+            heads,
+            self.self.num_attention_heads,
+            self.self.attention_head_size,
+            self.pruned_heads,
         )
 
         # Prune linear layers
@@ -535,7 +553,10 @@ class BertLayer(nn.Module):
             present_key_value = present_key_value + cross_attn_present_key_value
 
         layer_output = apply_chunking_to_forward(
-            self.feed_forward_chunk, self.chunk_size_feed_forward, self.seq_len_dim, attention_output
+            self.feed_forward_chunk,
+            self.chunk_size_feed_forward,
+            self.seq_len_dim,
+            attention_output,
         )
         outputs = (layer_output,) + outputs
 
@@ -995,7 +1016,11 @@ class BertModel(BertPreTrainedModel):
         # If a 2D or 3D attention mask is provided for the cross-attention
         # we need to make broadcastable to [batch_size, num_heads, seq_length, seq_length]
         if self.config.is_decoder and encoder_hidden_states is not None:
-            encoder_batch_size, encoder_sequence_length, _ = encoder_hidden_states.size()
+            (
+                encoder_batch_size,
+                encoder_sequence_length,
+                _,
+            ) = encoder_hidden_states.size()
             encoder_hidden_shape = (encoder_batch_size, encoder_sequence_length)
             if encoder_attention_mask is None:
                 encoder_attention_mask = torch.ones(encoder_hidden_shape, device=device)
@@ -1154,7 +1179,8 @@ class BertForPreTraining(BertPreTrainedModel):
 
 
 @add_start_docstrings(
-    """Bert Model with a `language modeling` head on top for CLM fine-tuning.""", BERT_START_DOCSTRING
+    """Bert Model with a `language modeling` head on top for CLM fine-tuning.""",
+    BERT_START_DOCSTRING,
 )
 class BertLMHeadModel(BertPreTrainedModel):
 
@@ -1272,7 +1298,10 @@ class BertLMHeadModel(BertPreTrainedModel):
             shifted_prediction_scores = prediction_scores[:, :-1, :].contiguous()
             labels = labels[:, 1:].contiguous()
             loss_fct = CrossEntropyLoss()
-            lm_loss = loss_fct(shifted_prediction_scores.view(-1, self.config.vocab_size), labels.view(-1))
+            lm_loss = loss_fct(
+                shifted_prediction_scores.view(-1, self.config.vocab_size),
+                labels.view(-1),
+            )
 
         if not return_dict:
             output = (prediction_scores,) + outputs[2:]
@@ -1297,7 +1326,11 @@ class BertLMHeadModel(BertPreTrainedModel):
         if past is not None:
             input_ids = input_ids[:, -1:]
 
-        return {"input_ids": input_ids, "attention_mask": attention_mask, "past_key_values": past}
+        return {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "past_key_values": past,
+        }
 
     def _reorder_cache(self, past, beam_idx):
         reordered_past = ()
@@ -1405,9 +1438,15 @@ class BertForMaskedLM(BertPreTrainedModel):
         if self.config.pad_token_id is None:
             raise ValueError("The PAD token should be defined for generation")
 
-        attention_mask = torch.cat([attention_mask, attention_mask.new_zeros((attention_mask.shape[0], 1))], dim=-1)
+        attention_mask = torch.cat(
+            [attention_mask, attention_mask.new_zeros((attention_mask.shape[0], 1))],
+            dim=-1,
+        )
         dummy_token = torch.full(
-            (effective_batch_size, 1), self.config.pad_token_id, dtype=torch.long, device=input_ids.device
+            (effective_batch_size, 1),
+            self.config.pad_token_id,
+            dtype=torch.long,
+            device=input_ids.device,
         )
         input_ids = torch.cat([input_ids, dummy_token], dim=1)
 

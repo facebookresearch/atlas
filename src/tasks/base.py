@@ -21,7 +21,14 @@ class BaseTask(object):
         self.filter = None
 
     @staticmethod
-    def data_iterator(filenames, world_rank=-1, world_size=-1, repeat_if_less_than_world_size=False, *args, **kwargs):
+    def data_iterator(
+        filenames,
+        world_rank=-1,
+        world_size=-1,
+        repeat_if_less_than_world_size=False,
+        *args,
+        **kwargs,
+    ):
         if isinstance(filenames, str):
             filenames = [filenames]
 

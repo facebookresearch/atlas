@@ -16,10 +16,22 @@ AVAILABLE_MODELS = [
     {"model": "models/atlas/xl", "description": "Pretrained Atlas XL model"},
     {"model": "models/atlas/large", "description": "Pretrained Atlas Large model"},
     {"model": "models/atlas/base", "description": "Pretrained Atlas Base model"},
-    {"model": "models/atlas_nq/xxl", "description": "Atlas XXL model, finetuned on Natural Questions"},
-    {"model": "models/atlas_nq/xl", "description": "Atlas XL model, finetuned on Natural Questions"},
-    {"model": "models/atlas_nq/large", "description": "Atlas large model, finetuned on Natural Questions"},
-    {"model": "models/atlas_nq/base", "description": "Atlas base model, finetuned on Natural Questions"},
+    {
+        "model": "models/atlas_nq/xxl",
+        "description": "Atlas XXL model, finetuned on Natural Questions",
+    },
+    {
+        "model": "models/atlas_nq/xl",
+        "description": "Atlas XL model, finetuned on Natural Questions",
+    },
+    {
+        "model": "models/atlas_nq/large",
+        "description": "Atlas large model, finetuned on Natural Questions",
+    },
+    {
+        "model": "models/atlas_nq/base",
+        "description": "Atlas base model, finetuned on Natural Questions",
+    },
 ]
 
 
