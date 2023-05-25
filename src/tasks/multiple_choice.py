@@ -60,7 +60,10 @@ class Task(BaseTask):
 
     def process(self, example, *args, **kwargs):
         preprocessed_question = self.get_multiple_choice_question_prompt(
-            self.tokenizer, example["question"], example["options"], maximum_length=self.maximum_question_length
+            self.tokenizer,
+            example["question"],
+            example["options"],
+            maximum_length=self.maximum_question_length,
         )
         target = f'<extra_id_0> {example["answer"]}'
 

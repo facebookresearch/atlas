@@ -15,7 +15,11 @@ import logging
 from evaluate import evaluate
 from src import dist_utils, slurm, util
 from src.index_io import load_or_initialize_index, save_embeddings_and_index
-from src.model_io import create_checkpoint_directories, load_or_initialize_atlas_model, save_atlas_model
+from src.model_io import (
+    create_checkpoint_directories,
+    load_or_initialize_atlas_model,
+    save_atlas_model,
+)
 from src.options import get_options
 from src.tasks import get_task
 
@@ -54,7 +58,11 @@ def train(
     )
     while step < opt.total_steps:
         data_iterator = task.data_iterator(
-            opt.train_data, opt.global_rank, opt.world_size, repeat_if_less_than_world_size=True, opt=opt
+            opt.train_data,
+            opt.global_rank,
+            opt.world_size,
+            repeat_if_less_than_world_size=True,
+            opt=opt,
         )
         data_iterator = filter(None, map(task.process, data_iterator))
         data_iterator = task.batch_iterator(data_iterator, opt.per_gpu_batch_size, drop_last=True, shuffle=opt.shuffle)
@@ -159,7 +167,7 @@ def train(
                             tb_logger.add_scalar(f"{dataset_name}/{k}", v, step)
                     logger.info(log_message)
 
-            if step % opt.save_freq == 0 and opt.is_main:
+            if step % opt.save_freq == 0:
                 save_atlas_model(
                     unwrapped_model,
                     optimizer,
@@ -193,7 +201,15 @@ if __name__ == "__main__":
     logger.info(f"world size: {dist_utils.get_world_size()}")
 
     index, passages = load_or_initialize_index(opt)
-    model, optimizer, scheduler, retr_optimizer, retr_scheduler, opt, step = load_or_initialize_atlas_model(opt)
+    (
+        model,
+        optimizer,
+        scheduler,
+        retr_optimizer,
+        retr_scheduler,
+        opt,
+        step,
+    ) = load_or_initialize_atlas_model(opt)
 
     if opt.is_distributed:
         if opt.shard_grads:

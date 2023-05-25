@@ -16,7 +16,10 @@ from src import dist_utils
 from src.retrievers import EMBEDDINGS_DIM
 
 FAISSGPUIndex = Union[
-    faiss.GpuIndexIVFFlat, faiss.GpuIndexIVFPQ, faiss.GpuIndexIVFScalarQuantizer, faiss.GpuIndexFlatIP
+    faiss.GpuIndexIVFFlat,
+    faiss.GpuIndexIVFPQ,
+    faiss.GpuIndexIVFScalarQuantizer,
+    faiss.GpuIndexFlatIP,
 ]
 FAISSIndex = Union[FAISSGPUIndex, faiss.IndexPQ]
 
