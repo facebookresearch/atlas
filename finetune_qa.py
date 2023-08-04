@@ -144,15 +144,7 @@ if __name__ == "__main__":
     logger.info(f"world size: {dist_utils.get_world_size()}")
 
     index, passages = load_or_initialize_index(opt)
-    (
-        model,
-        optimizer,
-        scheduler,
-        retr_optimizer,
-        retr_scheduler,
-        opt,
-        step,
-    ) = load_or_initialize_atlas_model(opt)
+    model, optimizer, scheduler, retr_optimizer, retr_scheduler, opt, step = load_or_initialize_atlas_model(opt)
 
     if opt.is_distributed:
         if opt.shard_grads:

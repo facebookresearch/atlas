@@ -40,11 +40,7 @@ from transformers.modeling_outputs import (
     Seq2SeqLMOutput,
     Seq2SeqModelOutput,
 )
-from transformers.modeling_utils import (
-    PreTrainedModel,
-    find_pruneable_heads_and_indices,
-    prune_linear_layer,
-)
+from transformers.modeling_utils import PreTrainedModel, find_pruneable_heads_and_indices, prune_linear_layer
 from transformers.utils import logging
 from transformers.utils.model_parallel_utils import assert_device_map, get_device_map
 from transformers.models.t5.configuration_t5 import T5Config
@@ -104,14 +100,7 @@ def load_tf_weights_in_t5(model, config, tf_checkpoint_path):
         # adam_v and adam_m are variables used in AdamWeightDecayOptimizer to calculated m and v
         # which are not required for using pretrained model
         if any(
-            n
-            in [
-                "adam_v",
-                "adam_m",
-                "AdamWeightDecayOptimizer",
-                "AdamWeightDecayOptimizer_1",
-                "global_step",
-            ]
+            n in ["adam_v", "adam_m", "AdamWeightDecayOptimizer", "AdamWeightDecayOptimizer_1", "global_step"]
             for n in name
         ):
             logger.info(f"Skipping {'/'.join(name)}")
@@ -402,8 +391,7 @@ class T5Attention(nn.Module):
             * (num_buckets - max_exact)
         ).to(torch.long)
         relative_postion_if_large = torch.min(
-            relative_postion_if_large,
-            torch.full_like(relative_postion_if_large, num_buckets - 1),
+            relative_postion_if_large, torch.full_like(relative_postion_if_large, num_buckets - 1)
         )
 
         relative_buckets += torch.where(is_small, relative_position, relative_postion_if_large)
@@ -412,15 +400,11 @@ class T5Attention(nn.Module):
     def compute_bias(self, query_length, key_length):
         """Compute binned relative position bias"""
         context_position = torch.arange(
-            query_length,
-            dtype=torch.long,
-            device=self.relative_attention_bias.weight.device,
+            query_length, dtype=torch.long, device=self.relative_attention_bias.weight.device
         )[:, None]
-        memory_position = torch.arange(
-            key_length,
-            dtype=torch.long,
-            device=self.relative_attention_bias.weight.device,
-        )[None, :]
+        memory_position = torch.arange(key_length, dtype=torch.long, device=self.relative_attention_bias.weight.device)[
+            None, :
+        ]
         relative_position = memory_position - context_position  # shape (query_length, key_length)
         relative_position_bucket = self._relative_position_bucket(
             relative_position,  # shape (query_length, key_length)
@@ -495,16 +479,10 @@ class T5Attention(nn.Module):
 
         # get key/value states
         key_states = project(
-            hidden_states,
-            self.k,
-            key_value_states,
-            past_key_value[0] if past_key_value is not None else None,
+            hidden_states, self.k, key_value_states, past_key_value[0] if past_key_value is not None else None
         )
         value_states = project(
-            hidden_states,
-            self.v,
-            key_value_states,
-            past_key_value[1] if past_key_value is not None else None,
+            hidden_states, self.v, key_value_states, past_key_value[1] if past_key_value is not None else None
         )
 
         # compute scores
@@ -515,9 +493,7 @@ class T5Attention(nn.Module):
         if position_bias is None:
             if not self.has_relative_attention_bias:
                 position_bias = torch.zeros(
-                    (1, self.n_heads, real_seq_length, key_length),
-                    device=scores.device,
-                    dtype=scores.dtype,
+                    (1, self.n_heads, real_seq_length, key_length), device=scores.device, dtype=scores.dtype
                 )
                 if self.gradient_checkpointing and self.training:
                     position_bias.requires_grad = True
@@ -953,10 +929,7 @@ class T5Stack(T5PreTrainedModel):
         if self.is_decoder and encoder_attention_mask is None and encoder_hidden_states is not None:
             encoder_seq_length = encoder_hidden_states.shape[1]
             encoder_attention_mask = torch.ones(
-                batch_size,
-                encoder_seq_length,
-                device=inputs_embeds.device,
-                dtype=torch.long,
+                batch_size, encoder_seq_length, device=inputs_embeds.device, dtype=torch.long
             )
 
         # initialize past_key_values with `None` if past does not exist
@@ -970,11 +943,7 @@ class T5Stack(T5PreTrainedModel):
         # If a 2D or 3D attention mask is provided for the cross-attention
         # we need to make broadcastable to [batch_size, num_heads, seq_length, seq_length]
         if self.is_decoder and encoder_hidden_states is not None:
-            (
-                encoder_batch_size,
-                encoder_sequence_length,
-                _,
-            ) = encoder_hidden_states.size()
+            encoder_batch_size, encoder_sequence_length, _ = encoder_hidden_states.size()
             encoder_hidden_shape = (encoder_batch_size, encoder_sequence_length)
             if encoder_attention_mask is None:
                 encoder_attention_mask = torch.ones(encoder_hidden_shape, device=inputs_embeds.device)

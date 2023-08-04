@@ -169,11 +169,7 @@ def set_optim(opt, model):
 
     retr_optimizer = None
     optim_class = AdamWFP32Copy
-    optim_args = {
-        "weight_decay": opt.weight_decay,
-        "betas": (0.9, opt.beta2),
-        "eps": opt.epsilon,
-    }
+    optim_args = {"weight_decay": opt.weight_decay, "betas": (0.9, opt.beta2), "eps": opt.epsilon}
     if opt.is_distributed and opt.shard_optim:
         from fairscale.optim.oss import OSS
 
@@ -185,11 +181,7 @@ def set_optim(opt, model):
         retr_optimizer = optim_class(params=model.retriever.parameters(), lr=opt.lr_retriever, **optim_args)
 
     retr_scheduler = None
-    scheduler_args = {
-        "warmup": opt.warmup_steps,
-        "total": opt.total_steps,
-        "ratio": 0.1,
-    }
+    scheduler_args = {"warmup": opt.warmup_steps, "total": opt.total_steps, "ratio": 0.1}
     if opt.scheduler == "linear":
         scheduler_class = WarmupLinearScheduler
     elif opt.scheduler == "cosine":

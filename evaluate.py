@@ -68,11 +68,7 @@ def run_retrieval_only(model, index, opt, data_path, step=None):
         for k in range(len(retrieved_passages)):
             if opt.write_results:
                 gold = [answers[k]] if not "answers" in batch else batch["answers"][k]
-                ex = {
-                    "query": query[k],
-                    "answers": gold,
-                    "passages": retrieved_passages[k],
-                }
+                ex = {"query": query[k], "answers": gold, "passages": retrieved_passages[k]}
                 if batch_metadata is not None:
                     ex["metadata"] = batch_metadata[k]
                 if "id" in batch:
@@ -131,16 +127,13 @@ def evaluate(model, index, opt, data_path, step=None):
             metrics["eval_loss"].append(eval_loss)
 
         generation = unwrapped_model.generate(
-            reader_tokens,
-            query,
-            choices=batch["choices"] if "choices" in batch else None,
+            reader_tokens, query, choices=batch["choices"] if "choices" in batch else None
         )
 
         for k, g in enumerate(generation):
             if opt.decoder_prompt_format is not None:
                 query_ids = reader_tokenizer.encode(
-                    opt.decoder_prompt_format.format_map({"query": query[k]}),
-                    add_special_tokens=False,
+                    opt.decoder_prompt_format.format_map({"query": query[k]}), add_special_tokens=False
                 )
                 g = g[len(query_ids) + 1 :]
             pred = reader_tokenizer.decode(g, skip_special_tokens=True)

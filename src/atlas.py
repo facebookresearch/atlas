@@ -240,12 +240,7 @@ class Atlas(nn.Module):
                 add_special_tokens=False,
             )["attention_mask"]
 
-            padding = torch.zeros(
-                (
-                    query_mask.size(0),
-                    target_tokens["input_ids"].size(-1) - query_mask.size(-1),
-                )
-            )
+            padding = torch.zeros((query_mask.size(0), target_tokens["input_ids"].size(-1) - query_mask.size(-1)))
             query_mask = torch.cat([query_mask, padding], dim=1)
             labels = labels.masked_fill(query_mask.bool(), IGNORE_INDEX)
 
@@ -374,9 +369,7 @@ class Atlas(nn.Module):
                     use_cache=False,
                 )
                 token_loss = nn.functional.cross_entropy(
-                    loo_output_eval.logits.view(-1, loo_output_eval.logits.size(-1)),
-                    labels.view(-1),
-                    reduction="none",
+                    loo_output_eval.logits.view(-1, loo_output_eval.logits.size(-1)), labels.view(-1), reduction="none"
                 )
                 mean_loss = token_loss.view(bsz, labels.shape[-1]).sum(dim=-1) / (labels > -1).sum(-1)
                 gold_scores.append(mean_loss)
@@ -476,13 +469,7 @@ class Atlas(nn.Module):
 
             if "eval" in self.opt.gold_score_mode:
                 gold_score = self.eval_score(
-                    reader_ids,
-                    reader_mask,
-                    decoder_input_ids,
-                    labels,
-                    cfg,
-                    bsz,
-                    query_mask_reader,
+                    reader_ids, reader_mask, decoder_input_ids, labels, cfg, bsz, query_mask_reader
                 )
             elif "loop" in self.opt.gold_score_mode:
                 gold_score = self.loop_score(reader_ids, reader_mask, decoder_input_ids, labels, cfg, bsz)

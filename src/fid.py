@@ -156,33 +156,14 @@ class FiD(T5ForConditionalGeneration):
 
         output = {}
         if "scores" in mode or "all" in mode:
-            self.aggregate_value(
-                scores,
-                mask,
-                labels,
-                n_passages,
-                ids,
-                mask_query,
-                output,
-                prefix="scores",
-            )
+            self.aggregate_value(scores, mask, labels, n_passages, ids, mask_query, output, prefix="scores")
         if "probs" in mode or "all" in mode:
             self.aggregate_value(probs, mask, labels, n_passages, ids, mask_query, output, prefix="probs")
         if "norms" in mode or "all" in mode:
             self.aggregate_value(norms, mask, labels, n_passages, ids, mask_query, output, prefix="norms")
         return output
 
-    def aggregate_value(
-        self,
-        scores,
-        mask,
-        labels,
-        n_passages,
-        ids,
-        mask_query=None,
-        output={},
-        prefix="",
-    ):
+    def aggregate_value(self, scores, mask, labels, n_passages, ids, mask_query=None, output={}, prefix=""):
         n_layers, bsz, n_tokens, total_tokens = scores.size()
 
         ids = ids.view(bsz, n_passages, -1)
@@ -227,9 +208,7 @@ class FiD(T5ForConditionalGeneration):
     def get_woquery_score(self, scores, mask_query, mask, labels, n_layers):
         if scores.size(-1) > mask_query.size(-1):
             zero_padding = torch.zeros(
-                [mask_query.size(0), scores.size(-1) - mask_query.size(-1)],
-                device=mask_query.device,
-                dtype=torch.bool,
+                [mask_query.size(0), scores.size(-1) - mask_query.size(-1)], device=mask_query.device, dtype=torch.bool
             )
             mask_query = torch.cat([mask_query, zero_padding], dim=-1)
         mask_query = mask * (~mask_query[:, None])
@@ -320,16 +299,10 @@ def cross_attention_forward(
 
     # get key/value states
     key_states = project(
-        hidden_states,
-        self.k,
-        key_value_states,
-        past_key_value[0] if past_key_value is not None else None,
+        hidden_states, self.k, key_value_states, past_key_value[0] if past_key_value is not None else None
     )
     value_states = project(
-        hidden_states,
-        self.v,
-        key_value_states,
-        past_key_value[1] if past_key_value is not None else None,
+        hidden_states, self.v, key_value_states, past_key_value[1] if past_key_value is not None else None
     )
 
     # compute scores
@@ -340,9 +313,7 @@ def cross_attention_forward(
     if position_bias is None:
         if not self.has_relative_attention_bias:
             position_bias = torch.zeros(
-                (1, self.n_heads, real_seq_length, key_length),
-                device=scores.device,
-                dtype=scores.dtype,
+                (1, self.n_heads, real_seq_length, key_length), device=scores.device, dtype=scores.dtype
             )
             if self.gradient_checkpointing and self.training:
                 position_bias.requires_grad = True

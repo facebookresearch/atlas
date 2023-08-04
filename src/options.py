@@ -19,10 +19,7 @@ class Options:
     def initialize_parser(self):
         # basic parameters
         self.parser.add_argument(
-            "--name",
-            type=str,
-            default="experiment_name",
-            help="name of the experiment - also used as directory name ",
+            "--name", type=str, default="experiment_name", help="name of the experiment - also used as directory name "
         )
         self.parser.add_argument(
             "--checkpoint_dir",
@@ -82,10 +79,7 @@ class Options:
             help="save model every <save_freq> steps during training",
         )
         self.parser.add_argument(
-            "--train_data",
-            nargs="+",
-            default=[],
-            help="list of space-separated paths to jsonl-formatted train sets",
+            "--train_data", nargs="+", default=[], help="list of space-separated paths to jsonl-formatted train sets"
         )
         self.parser.add_argument(
             "--eval_data",
@@ -93,11 +87,7 @@ class Options:
             default=[],
             help="list of space-separated paths to jsonl-formatted evaluation sets",
         )
-        self.parser.add_argument(
-            "--write_results",
-            action="store_true",
-            help="save evaluation results to file",
-        )
+        self.parser.add_argument("--write_results", action="store_true", help="save evaluation results to file")
         self.parser.add_argument(
             "--dont_write_passages",
             action="store_true",
@@ -105,18 +95,8 @@ class Options:
         )
 
     def add_optim_options(self):
-        self.parser.add_argument(
-            "--warmup_steps",
-            type=int,
-            default=1000,
-            help="number of learning rate warmup steps",
-        )
-        self.parser.add_argument(
-            "--total_steps",
-            type=int,
-            default=1000,
-            help="total number of training steps",
-        )
+        self.parser.add_argument("--warmup_steps", type=int, default=1000, help="number of learning rate warmup steps")
+        self.parser.add_argument("--total_steps", type=int, default=1000, help="total number of training steps")
         self.parser.add_argument(
             "--scheduler_steps",
             type=int,
@@ -126,12 +106,7 @@ class Options:
         self.parser.add_argument("--accumulation_steps", type=int, default=1, help="gradient accumulation")
         self.parser.add_argument("--dropout", type=float, default=0.1, help="dropout rate")
         self.parser.add_argument("--lr", type=float, default=1e-4, help="learning rate")
-        self.parser.add_argument(
-            "--lr_retriever",
-            type=float,
-            default=1e-5,
-            help="learning rate for retriever",
-        )
+        self.parser.add_argument("--lr_retriever", type=float, default=1e-5, help="learning rate for retriever")
         self.parser.add_argument("--clip", type=float, default=1.0, help="gradient clipping")
         self.parser.add_argument(
             "--scheduler",
@@ -141,15 +116,10 @@ class Options:
             help="learning rate schedule to use",
         )
         self.parser.add_argument(
-            "--weight_decay",
-            type=float,
-            default=0.1,
-            help="amount of weight decay to apply in training",
+            "--weight_decay", type=float, default=0.1, help="amount of weight decay to apply in training"
         )
         self.parser.add_argument(
-            "--save_optimizer",
-            action="store_true",
-            help="Pass flag to save optimizer state in saved checkpoints",
+            "--save_optimizer", action="store_true", help="Pass flag to save optimizer state in saved checkpoints"
         )
         self.parser.add_argument("--epsilon", type=float, default=1e-6, help="adamw epsilon value")
         self.parser.add_argument("--alpha", type=float, default=1.0, help="adamw alpha value")
@@ -229,12 +199,7 @@ class Options:
             default=None,
             help="Maximum length of target outputs in tokens when training the model. Targets longer than this will be truncated. No truncation if -1",
         )
-        self.parser.add_argument(
-            "--n_context",
-            type=int,
-            default=1,
-            help="number of top k passages to pass to reader",
-        )
+        self.parser.add_argument("--n_context", type=int, default=1, help="number of top k passages to pass to reader")
 
         # Retriever modelling options
         self.parser.add_argument(
@@ -260,9 +225,7 @@ class Options:
             help="Pass this to prevent loading a reader, and only run retrieval evaluation",
         )
         self.parser.add_argument(
-            "--train_retriever",
-            action="store_true",
-            help="Pass to train retriever as well as reader",
+            "--train_retriever", action="store_true", help="Pass to train retriever as well as reader"
         )
         self.parser.add_argument(
             "--use_file_passages",
@@ -288,10 +251,7 @@ class Options:
             help="Dont use retrieval - reduces to T5. Overrides n_context, n_context_retriever and encoder_format if they are set",
         )
         self.parser.add_argument(
-            "--temperature_score",
-            type=float,
-            default=0.01,
-            help="softmax temperature for retriever",
+            "--temperature_score", type=float, default=0.01, help="softmax temperature for retriever"
         )
         self.parser.add_argument(
             "--temperature_gold",
@@ -306,12 +266,7 @@ class Options:
             default=2,
             help="if filtering, over-retrieve the topK by this factor, and then filter out undesirable results. Useful, Set to 1 only if using a task that doesn't filter retrieved results",
         )
-        self.parser.add_argument(
-            "--freeze_retriever_steps",
-            type=int,
-            default=-1,
-            help="freezes retriever for n steps",
-        )
+        self.parser.add_argument("--freeze_retriever_steps", type=int, default=-1, help="freezes retriever for n steps")
         self.parser.add_argument(
             "--query_side_retriever_training",
             action="store_true",
@@ -366,16 +321,7 @@ class Options:
             "--task",
             type=str,
             default=None,
-            choices=[
-                "base",
-                "mlm",
-                "lm",
-                "multiple_choice",
-                "kilt",
-                "section",
-                "fever",
-                "qa",
-            ],
+            choices=["base", "mlm", "lm", "multiple_choice", "kilt", "section", "fever", "qa"],
             help="Task performed by the model. Used to setup preprocessing, retrieval filtering, evaluations, etc.",
         )
 
@@ -387,10 +333,7 @@ class Options:
             help="how much of an input text should be masked by masking spans ",
         )
         self.parser.add_argument(
-            "--mlm_mean_noise_span_length",
-            type=float,
-            default=3,
-            help="average length of an MLM masking span",
+            "--mlm_mean_noise_span_length", type=float, default=3, help="average length of an MLM masking span"
         )
         self.parser.add_argument(
             "--min_words_per_lm_instance",
@@ -485,12 +428,7 @@ class Options:
             help="IVFFlat, IndexFlatIP, IVFScalarQuantizer or IndexIVFPQ with faiss-gpu",
             choices=["ivfflat", "flat", "ivfsq", "ivfpq", "pq"],
         )
-        self.parser.add_argument(
-            "--faiss_code_size",
-            type=int,
-            default=None,
-            help="Parameter for PQ/SQ quantization",
-        )
+        self.parser.add_argument("--faiss_code_size", type=int, default=None, help="Parameter for PQ/SQ quantization")
 
     def print_options(self, opt):
         message = "\n"
