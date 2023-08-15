@@ -117,7 +117,7 @@ DATA_DIR=./atlas_data
 SIZE=large # lets use large, (slower than base, but still quite fast and accessible, but less accurate than xl or xxl)
 
 # download the NQ data
-python preprocessing/prepare_qa.py --output_directory ${DATA_DIR} 
+python preprocessing/prepare_qa.py --output_directory ${DATA_DIR}/data/
 # download the Wikipedia 2018 corpus
 python preprocessing/download_corpus.py --corpus corpora/wiki/enwiki-dec2018 --output_directory ${DATA_DIR} 
 # downloads pretrained Atlas-large
@@ -144,7 +144,7 @@ srun python train.py \
     --reader_model_type google/t5-${SIZE}-lm-adapt \ # architecture of Atlas
     --dropout 0.1 --weight_decay 0.01 --lr 4e-5 --lr_retriever 4e-5 --scheduler linear \ # optimization flags
     --text_maxlength 512 \ # max length of question + passage when concatenated
-    --model_path "${DATA_DIR}/models/atlas/${size}" \ # path to the pretrained Atlas model we just downloaded (pass 'none' to init from plain t5 and Contriever)
+    --model_path "${DATA_DIR}/models/atlas/${SIZE}" \ # path to the pretrained Atlas model we just downloaded (pass 'none' to init from plain t5 and Contriever)
     --train_data "${DATA_DIR}/data/nq_data/train.64-shot.jsonl" \ # path the 64-shot train dataset we just downloaded 
     --eval_data "${DATA_DIR}/data/nq_data/dev.jsonl" \ # path the NQ dev dataset we just downloaded, to evaluate on when training is done
     --per_gpu_batch_size 1 \
@@ -161,7 +161,7 @@ srun python train.py \
     --write_results \ # write predictions - they will get saved in the checkpoint folder, ${SAVE_DIR}/${EXPERIMENT_NAME}
     --task qa \ # we're doing the QA task
     --index_mode flat \ # don't use faiss, keep index flat (recommended unless using very large indices or very constrained on GPU memory)
-    --passages "${DATA_DIR}/corpora/enwiki-dec2018/text-list-100-sec.jsonl ${DATA_DIR}/corpora/wiki/enwiki-dec2018/infobox.jsonl"\ # pass in the wikipedia passages to index and retrieve from (we use both the text and infoboxes)
+    --passages "${DATA_DIR}/corpora/wiki/enwiki-dec2018/text-list-100-sec.jsonl" "${DATA_DIR}/corpora/wiki/enwiki-dec2018/infobox.jsonl"\ # pass in the wikipedia passages to index and retrieve from (we use both the text and infoboxes)
     --save_index_path ${SAVE_DIR}/${EXPERIMENT_NAME}/saved_index # save the index we built to this path
 ```
 
