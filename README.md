@@ -4,7 +4,7 @@ REPO NO LONGER MAINTAINED, RESEARCH CODE PROVIDED AS IT IS
 
 This repository contains pre-trained models, corpora, indices, and code for pre-training, finetuning, retrieving and evaluating for the paper [Atlas: Few-shot Learning with Retrieval Augmented Language Models](https://arxiv.org/pdf/2208.03299.pdf)
 
-Read our [Atlas blog post](https://research.facebook.com/blog/2023/1/atlas-few-shot-learning-with-retrieval-augmented-language-models/) for a quick overview of the project and how to run the code with torchrun (slum free option).
+Read our [Atlas blog post](https://research.facebook.com/blog/2023/1/atlas-few-shot-learning-with-retrieval-augmented-language-models/) for a quick overview of the project and how to run the code with torchrun (slurm free option).
 
 We jointly pretrain a retrieval-augmented seq2seq language model, comprised of a passage-based dense retriever and a encoder-decoder language model. 
 We perform evaluations on a wide range of tasks, including MMLU, KILT and NaturalQuestions, and
