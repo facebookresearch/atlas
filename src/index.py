@@ -82,7 +82,7 @@ class DistributedIndex(object):
                 passage_shard = [self.doc_map[i] for i in range(shard_start, shard_end)]
                 with open(passage_shard_path, "wb") as fobj:
                     pickle.dump(passage_shard, fobj, protocol=pickle.HIGHEST_PROTOCOL)
-            embeddings_shard = self.embeddings[:, shard_start:shard_end]
+            embeddings_shard = self.embeddings[:, shard_start:shard_end].clone()
             embedding_shard_path = self._get_saved_embedding_path(path, shard_id)
             torch.save(embeddings_shard, embedding_shard_path)
 
