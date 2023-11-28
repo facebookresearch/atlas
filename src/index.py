@@ -287,8 +287,7 @@ class DistributedFAISSIndex(DistributedIndex):
         """
         index_config.device = torch.cuda.current_device()
         index_config.indicesOptions = faiss.INDICES_32_BIT
-        index_config.useFloat16 = True
-
+        index_config.useFloat16LookupTables = True
         return index_config
 
     def _create_PQ_index(self, dimension) -> FAISSIndex:
