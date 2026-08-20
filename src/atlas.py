@@ -71,7 +71,7 @@ class Atlas(nn.Module):
                 batch,
                 padding="longest",
                 return_tensors="pt",
-                max_length=min(self.opt.text_maxlength, gpu_embedder_batch_size),
+                max_length=min(self.opt.text_maxlength, BERT_MAX_SEQ_LENGTH),
                 truncation=True,
             )
 
